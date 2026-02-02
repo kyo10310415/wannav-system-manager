@@ -103,15 +103,27 @@
                             <div class="flex items-start justify-between">
                                 <div class="flex-1">
                                     <div class="flex items-center mb-2">
-                                        <h3 class="font-semibold text-gray-800 flex-1"><%= log.title %></h3>
-                                        <% if (log.description && log.description !== log.title) { %>
-                                            <button onclick="toggleDescription(<%= log.id %>)" class="text-blue-600 hover:text-blue-800 text-xs ml-2">
-                                                <i class="fas fa-chevron-down" id="icon-<%= log.id %>"></i>
+                                        <h3 class="font-semibold text-gray-800 flex-1">
+                                            <span class="translated-title" data-id="<%= log.id %>" data-original="<%= log.title %>"><%= log.title %></span>
+                                        </h3>
+                                        <div class="flex items-center space-x-2">
+                                            <button onclick="toggleOriginal(<%= log.id %>, 'title')" class="text-gray-500 hover:text-gray-700 text-xs translation-toggle hidden" id="toggle-title-<%= log.id %>">
+                                                <i class="fas fa-language mr-1"></i>原文
                                             </button>
-                                        <% } %>
+                                            <% if (log.description && log.description !== log.title) { %>
+                                                <button onclick="toggleDescription(<%= log.id %>)" class="text-blue-600 hover:text-blue-800 text-xs ml-2">
+                                                    <i class="fas fa-chevron-down" id="icon-<%= log.id %>"></i>
+                                                </button>
+                                            <% } %>
+                                        </div>
                                     </div>
                                     <% if (log.description && log.description !== log.title) { %>
-                                        <div id="desc-<%= log.id %>" class="hidden text-gray-600 text-sm mb-2 whitespace-pre-wrap border-l-2 border-gray-300 pl-3 mt-2"><%= log.description %></div>
+                                        <div id="desc-<%= log.id %>" class="hidden text-gray-600 text-sm mb-2 border-l-2 border-gray-300 pl-3 mt-2">
+                                            <div class="whitespace-pre-wrap translated-desc" data-id="<%= log.id %>" data-original="<%= log.description %>"><%= log.description %></div>
+                                            <button onclick="toggleOriginal(<%= log.id %>, 'desc')" class="text-gray-500 hover:text-gray-700 text-xs mt-2 translation-toggle hidden" id="toggle-desc-<%= log.id %>">
+                                                <i class="fas fa-language mr-1"></i>原文を見る
+                                            </button>
+                                        </div>
                                     <% } %>
                                     <div class="flex items-center space-x-4 text-xs text-gray-500">
                                         <span>
@@ -408,6 +420,110 @@ function toggleDescription(id) {
         icon.classList.add('fa-chevron-down');
     }
 }
+
+// 英語検出（簡易版）
+function isEnglish(text) {
+    // 英字の割合が50%以上なら英語と判定
+    const englishChars = text.match(/[a-zA-Z]/g);
+    if (!englishChars) return false;
+    return englishChars.length / text.length > 0.5;
+}
+
+// Google翻訳API（無料版）を使用して翻訳
+async function translateText(text, targetLang = 'ja') {
+    try {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data && data[0]) {
+            return data[0].map(item => item[0]).join('');
+        }
+        return text;
+    } catch (error) {
+        console.error('Translation error:', error);
+        return text;
+    }
+}
+
+// 原文と翻訳を切り替え
+const translationState = {};
+
+function toggleOriginal(id, type) {
+    const element = document.querySelector(`.translated-${type}[data-id="${id}"]`);
+    const toggleBtn = document.getElementById(`toggle-${type}-${id}`);
+    
+    if (!element || !toggleBtn) return;
+    
+    const key = `${id}-${type}`;
+    
+    if (translationState[key]) {
+        // 翻訳を表示
+        element.textContent = translationState[key].translated;
+        toggleBtn.innerHTML = '<i class="fas fa-language mr-1"></i>原文を見る';
+        translationState[key].showing = 'translated';
+    } else {
+        // 原文を表示
+        const original = element.dataset.original;
+        element.textContent = original;
+        toggleBtn.innerHTML = '<i class="fas fa-language mr-1"></i>翻訳を見る';
+        if (!translationState[key]) {
+            translationState[key] = { original, showing: 'original' };
+        } else {
+            translationState[key].showing = 'original';
+        }
+    }
+}
+
+// ページ読み込み時に自動翻訳
+document.addEventListener('DOMContentLoaded', async () => {
+    const titles = document.querySelectorAll('.translated-title');
+    const descs = document.querySelectorAll('.translated-desc');
+    
+    // タイトルの翻訳
+    for (const titleEl of titles) {
+        const originalText = titleEl.dataset.original;
+        const id = titleEl.dataset.id;
+        
+        if (isEnglish(originalText)) {
+            const translated = await translateText(originalText);
+            titleEl.textContent = translated;
+            
+            // 原文ボタンを表示
+            const toggleBtn = document.getElementById(`toggle-title-${id}`);
+            if (toggleBtn) {
+                toggleBtn.classList.remove('hidden');
+                translationState[`${id}-title`] = {
+                    original: originalText,
+                    translated: translated,
+                    showing: 'translated'
+                };
+            }
+        }
+    }
+    
+    // 説明文の翻訳
+    for (const descEl of descs) {
+        const originalText = descEl.dataset.original;
+        const id = descEl.dataset.id;
+        
+        if (isEnglish(originalText)) {
+            const translated = await translateText(originalText);
+            descEl.textContent = translated;
+            
+            // 原文ボタンを表示
+            const toggleBtn = document.getElementById(`toggle-desc-${id}`);
+            if (toggleBtn) {
+                toggleBtn.classList.remove('hidden');
+                translationState[`${id}-desc`] = {
+                    original: originalText,
+                    translated: translated,
+                    showing: 'translated'
+                };
+            }
+        }
+    }
+});
 
 // 削除機能
 async function deleteChangeLog(id) {
