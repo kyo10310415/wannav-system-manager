@@ -1,0 +1,437 @@
+<% title = repository.name %>
+<%- include('../partials/header') %>
+
+<div class="max-w-7xl mx-auto">
+    <!-- リポジトリヘッダー -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex items-start justify-between">
+            <div class="flex-1">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                    <i class="fab fa-github mr-2"></i>
+                    <%= repository.name %>
+                </h1>
+                <% if (repository.description) { %>
+                    <p class="text-gray-600 mb-4"><%= repository.description %></p>
+                <% } %>
+                <div class="flex items-center space-x-4 text-sm text-gray-500">
+                    <% if (repository.language) { %>
+                        <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded">
+                            <%= repository.language %>
+                        </span>
+                    <% } %>
+                    <a href="<%= repository.url %>" target="_blank" class="text-blue-600 hover:underline">
+                        <i class="fab fa-github mr-1"></i>
+                        GitHubで開く
+                    </a>
+                    <% if (repository.homepage) { %>
+                        <a href="<%= repository.homepage %>" target="_blank" class="text-blue-600 hover:underline">
+                            <i class="fas fa-external-link-alt mr-1"></i>
+                            ホームページ
+                        </a>
+                    <% } %>
+                </div>
+            </div>
+            <a href="/repositories" class="text-gray-600 hover:text-gray-800">
+                <i class="fas fa-arrow-left mr-1"></i>
+                戻る
+            </a>
+        </div>
+    </div>
+    
+    <!-- タブナビゲーション -->
+    <div class="bg-white rounded-lg shadow-md mb-6">
+        <div class="border-b">
+            <nav class="flex space-x-8 px-6" role="tablist">
+                <button class="tab-button py-4 px-1 border-b-2 border-blue-600 font-medium text-blue-600" data-tab="changelog">
+                    <i class="fas fa-history mr-2"></i>
+                    更新履歴
+                </button>
+                <button class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-gray-500 hover:text-gray-700" data-tab="tasks">
+                    <i class="fas fa-tasks mr-2"></i>
+                    タスク管理
+                </button>
+                <button class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-gray-500 hover:text-gray-700" data-tab="costs">
+                    <i class="fas fa-yen-sign mr-2"></i>
+                    コスト管理
+                </button>
+            </nav>
+        </div>
+        
+        <!-- 更新履歴タブ -->
+        <div class="tab-content p-6" id="changelog-tab">
+            <div class="mb-6">
+                <button onclick="showChangeLogForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow transition">
+                    <i class="fas fa-plus mr-2"></i>
+                    更新履歴を追加
+                </button>
+            </div>
+            
+            <!-- 更新履歴追加フォーム -->
+            <div id="changelog-form" class="hidden bg-gray-50 p-4 rounded-lg mb-6">
+                <form method="POST" action="/changelogs">
+                    <input type="hidden" name="repository_id" value="<%= repository.id %>">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">タイトル</label>
+                        <input type="text" name="title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">説明</label>
+                        <textarea name="description" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">作成者</label>
+                        <input type="text" name="author" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="flex space-x-2">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow transition">
+                            追加
+                        </button>
+                        <button type="button" onclick="hideChangeLogForm()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow transition">
+                            キャンセル
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- 更新履歴リスト -->
+            <div class="space-y-4">
+                <% if (changeLogs.length === 0) { %>
+                    <p class="text-gray-500 text-center py-8">更新履歴はまだありません</p>
+                <% } else { %>
+                    <% changeLogs.forEach(log => { %>
+                        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <h3 class="font-semibold text-gray-800 mb-2"><%= log.title %></h3>
+                                    <% if (log.description) { %>
+                                        <p class="text-gray-600 text-sm mb-2 whitespace-pre-wrap"><%= log.description %></p>
+                                    <% } %>
+                                    <div class="flex items-center space-x-4 text-xs text-gray-500">
+                                        <span>
+                                            <i class="fas fa-user mr-1"></i>
+                                            <%= log.author || 'Unknown' %>
+                                        </span>
+                                        <span>
+                                            <i class="fas fa-clock mr-1"></i>
+                                            <%= new Date(log.created_at).toLocaleString('ja-JP') %>
+                                        </span>
+                                        <span class="<%= log.change_type === 'webhook' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' %> px-2 py-1 rounded">
+                                            <%= log.change_type === 'webhook' ? '自動' : '手動' %>
+                                        </span>
+                                    </div>
+                                </div>
+                                <button onclick="deleteChangeLog(<%= log.id %>)" class="text-red-500 hover:text-red-700 ml-4">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } %>
+            </div>
+        </div>
+        
+        <!-- タスク管理タブ -->
+        <div class="tab-content p-6 hidden" id="tasks-tab">
+            <div class="mb-6">
+                <button onclick="showTaskForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow transition">
+                    <i class="fas fa-plus mr-2"></i>
+                    タスクを追加
+                </button>
+            </div>
+            
+            <!-- タスク追加フォーム -->
+            <div id="task-form" class="hidden bg-gray-50 p-4 rounded-lg mb-6">
+                <form method="POST" action="/tasks">
+                    <input type="hidden" name="repository_id" value="<%= repository.id %>">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">タスク名</label>
+                        <input type="text" name="title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">メモ</label>
+                        <textarea name="memo" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">期限</label>
+                        <input type="date" name="due_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="flex space-x-2">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow transition">
+                            追加
+                        </button>
+                        <button type="button" onclick="hideTaskForm()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow transition">
+                            キャンセル
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- タスクリスト -->
+            <div class="space-y-4">
+                <% if (tasks.length === 0) { %>
+                    <p class="text-gray-500 text-center py-8">タスクはまだありません</p>
+                <% } else { %>
+                    <% tasks.forEach(task => { %>
+                        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition <%= task.status === 'completed' ? 'bg-green-50' : '' %>">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-start flex-1">
+                                    <input type="checkbox" <%= task.status === 'completed' ? 'checked' : '' %> 
+                                           onchange="toggleTask(<%= task.id %>)" 
+                                           class="mt-1 mr-3 h-5 w-5 text-blue-600 rounded focus:ring-blue-500">
+                                    <div class="flex-1">
+                                        <h3 class="font-semibold text-gray-800 mb-1 <%= task.status === 'completed' ? 'line-through' : '' %>">
+                                            <%= task.title %>
+                                        </h3>
+                                        <% if (task.memo) { %>
+                                            <p class="text-gray-600 text-sm mb-2 whitespace-pre-wrap"><%= task.memo %></p>
+                                        <% } %>
+                                        <div class="flex items-center space-x-4 text-xs text-gray-500">
+                                            <% if (task.due_date) { %>
+                                                <span class="<%= new Date(task.due_date) < new Date() && task.status !== 'completed' ? 'text-red-600 font-semibold' : '' %>">
+                                                    <i class="fas fa-calendar mr-1"></i>
+                                                    <%= new Date(task.due_date).toLocaleDateString('ja-JP') %>
+                                                </span>
+                                            <% } %>
+                                            <span class="<%= task.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' %> px-2 py-1 rounded">
+                                                <%= task.status === 'completed' ? '完了' : '未完了' %>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onclick="deleteTask(<%= task.id %>)" class="text-red-500 hover:text-red-700 ml-4">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } %>
+            </div>
+        </div>
+        
+        <!-- コスト管理タブ -->
+        <div class="tab-content p-6 hidden" id="costs-tab">
+            <div class="mb-6">
+                <button onclick="showCostForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow transition">
+                    <i class="fas fa-plus mr-2"></i>
+                    コストを追加
+                </button>
+            </div>
+            
+            <!-- コスト追加フォーム -->
+            <div id="cost-form" class="hidden bg-gray-50 p-4 rounded-lg mb-6">
+                <form method="POST" action="/costs">
+                    <input type="hidden" name="repository_id" value="<%= repository.id %>">
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">項目名</label>
+                            <input type="text" name="item_name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">金額</label>
+                            <input type="number" step="0.01" name="amount" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">通貨</label>
+                            <select name="currency" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="JPY">JPY (円)</option>
+                                <option value="USD">USD (ドル)</option>
+                                <option value="EUR">EUR (ユーロ)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">請求サイクル</label>
+                            <select name="billing_cycle" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">選択してください</option>
+                                <option value="monthly">月次</option>
+                                <option value="yearly">年次</option>
+                                <option value="one-time">一回のみ</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">説明</label>
+                        <textarea name="description" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow transition">
+                            追加
+                        </button>
+                        <button type="button" onclick="hideCostForm()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow transition">
+                            キャンセル
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- コスト合計表示 -->
+            <% if (costs.length > 0) { %>
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                    <h3 class="font-semibold text-blue-900 mb-2">合計コスト</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <% 
+                        const totals = {};
+                        costs.forEach(cost => {
+                            if (!totals[cost.currency]) totals[cost.currency] = 0;
+                            totals[cost.currency] += parseFloat(cost.amount);
+                        });
+                        Object.keys(totals).forEach(currency => { 
+                        %>
+                            <div class="text-2xl font-bold text-blue-900">
+                                <%= totals[currency].toLocaleString() %> <%= currency %>
+                            </div>
+                        <% }); %>
+                    </div>
+                </div>
+            <% } %>
+            
+            <!-- コストリスト -->
+            <div class="space-y-4">
+                <% if (costs.length === 0) { %>
+                    <p class="text-gray-500 text-center py-8">コスト情報はまだありません</p>
+                <% } else { %>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white border border-gray-200">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">項目名</th>
+                                    <th class="px-4 py-2 text-right text-sm font-medium text-gray-700">金額</th>
+                                    <th class="px-4 py-2 text-center text-sm font-medium text-gray-700">請求サイクル</th>
+                                    <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">説明</th>
+                                    <th class="px-4 py-2 text-center text-sm font-medium text-gray-700">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% costs.forEach(cost => { %>
+                                    <tr class="border-t hover:bg-gray-50">
+                                        <td class="px-4 py-3 text-sm font-medium text-gray-800"><%= cost.item_name %></td>
+                                        <td class="px-4 py-3 text-sm text-right text-gray-900">
+                                            <%= parseFloat(cost.amount).toLocaleString() %> <%= cost.currency %>
+                                        </td>
+                                        <td class="px-4 py-3 text-sm text-center">
+                                            <% if (cost.billing_cycle) { %>
+                                                <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">
+                                                    <%= cost.billing_cycle === 'monthly' ? '月次' : cost.billing_cycle === 'yearly' ? '年次' : '一回のみ' %>
+                                                </span>
+                                            <% } %>
+                                        </td>
+                                        <td class="px-4 py-3 text-sm text-gray-600">
+                                            <%= cost.description || '-' %>
+                                        </td>
+                                        <td class="px-4 py-3 text-sm text-center">
+                                            <button onclick="deleteCost(<%= cost.id %>)" class="text-red-500 hover:text-red-700">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// タブ切り替え
+document.querySelectorAll('.tab-button').forEach(button => {
+    button.addEventListener('click', () => {
+        const tabName = button.dataset.tab;
+        
+        // すべてのタブボタンから active クラスを削除
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.classList.remove('border-blue-600', 'text-blue-600');
+            btn.classList.add('border-transparent', 'text-gray-500');
+        });
+        
+        // クリックされたタブボタンに active クラスを追加
+        button.classList.remove('border-transparent', 'text-gray-500');
+        button.classList.add('border-blue-600', 'text-blue-600');
+        
+        // すべてのタブコンテンツを非表示
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+        
+        // 選択されたタブコンテンツを表示
+        document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+    });
+});
+
+// フォーム表示/非表示
+function showChangeLogForm() {
+    document.getElementById('changelog-form').classList.remove('hidden');
+}
+
+function hideChangeLogForm() {
+    document.getElementById('changelog-form').classList.add('hidden');
+}
+
+function showTaskForm() {
+    document.getElementById('task-form').classList.remove('hidden');
+}
+
+function hideTaskForm() {
+    document.getElementById('task-form').classList.add('hidden');
+}
+
+function showCostForm() {
+    document.getElementById('cost-form').classList.remove('hidden');
+}
+
+function hideCostForm() {
+    document.getElementById('cost-form').classList.add('hidden');
+}
+
+// 削除機能
+async function deleteChangeLog(id) {
+    if (!confirm('この更新履歴を削除しますか?')) return;
+    
+    try {
+        await axios.delete(`/changelogs/${id}`);
+        location.reload();
+    } catch (error) {
+        console.error('Error deleting change log:', error);
+        alert('削除に失敗しました');
+    }
+}
+
+async function deleteTask(id) {
+    if (!confirm('このタスクを削除しますか?')) return;
+    
+    try {
+        await axios.delete(`/tasks/${id}`);
+        location.reload();
+    } catch (error) {
+        console.error('Error deleting task:', error);
+        alert('削除に失敗しました');
+    }
+}
+
+async function deleteCost(id) {
+    if (!confirm('このコストを削除しますか?')) return;
+    
+    try {
+        await axios.delete(`/costs/${id}`);
+        location.reload();
+    } catch (error) {
+        console.error('Error deleting cost:', error);
+        alert('削除に失敗しました');
+    }
+}
+
+async function toggleTask(id) {
+    try {
+        await axios.post(`/tasks/${id}/toggle`);
+        location.reload();
+    } catch (error) {
+        console.error('Error toggling task:', error);
+        alert('ステータスの変更に失敗しました');
+    }
+}
+</script>
+
+<%- include('../partials/footer') %>

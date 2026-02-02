@@ -1,0 +1,83 @@
+<% title = 'リポジトリ一覧' %>
+<%- include('../partials/header') %>
+
+<div class="max-w-7xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">
+            <i class="fab fa-github mr-2"></i>
+            リポジトリ一覧
+        </h1>
+        <form method="POST" action="/repositories/sync">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow transition">
+                <i class="fas fa-sync-alt mr-2"></i>
+                GitHub同期
+            </button>
+        </form>
+    </div>
+    
+    <% if (repositories.length === 0) { %>
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+            <div class="flex">
+                <i class="fas fa-exclamation-triangle text-yellow-400 mr-3 mt-1"></i>
+                <div>
+                    <p class="text-yellow-700">
+                        リポジトリが登録されていません。「GitHub同期」ボタンをクリックして、リポジトリを取得してください。
+                    </p>
+                </div>
+            </div>
+        </div>
+    <% } else { %>
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <% repositories.forEach(repo => { %>
+                <div class="bg-white rounded-lg shadow-md hover:shadow-xl transition <%= !repo.is_visible ? 'opacity-50' : '' %>">
+                    <div class="p-6">
+                        <div class="flex items-start justify-between mb-4">
+                            <h2 class="text-xl font-semibold text-gray-800 flex-1">
+                                <a href="/repositories/<%= repo.id %>" class="hover:text-blue-600 transition">
+                                    <%= repo.name %>
+                                </a>
+                            </h2>
+                            <button onclick="toggleVisibility(<%= repo.id %>)" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas <%= repo.is_visible ? 'fa-eye' : 'fa-eye-slash' %>"></i>
+                            </button>
+                        </div>
+                        
+                        <% if (repo.description) { %>
+                            <p class="text-gray-600 text-sm mb-4"><%= repo.description %></p>
+                        <% } %>
+                        
+                        <div class="flex items-center justify-between text-sm text-gray-500">
+                            <% if (repo.language) { %>
+                                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                    <%= repo.language %>
+                                </span>
+                            <% } else { %>
+                                <span></span>
+                            <% } %>
+                            <a href="<%= repo.url %>" target="_blank" class="text-blue-600 hover:underline">
+                                <i class="fab fa-github mr-1"></i>
+                                GitHub
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+    <% } %>
+</div>
+
+<script>
+async function toggleVisibility(id) {
+    try {
+        const response = await axios.post(`/repositories/${id}/toggle-visibility`);
+        if (response.data.success) {
+            location.reload();
+        }
+    } catch (error) {
+        console.error('Error toggling visibility:', error);
+        alert('表示/非表示の切り替えに失敗しました');
+    }
+}
+</script>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: wannav-system-manager
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_USERNAME
+        value: kyo10310415
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: wannav-db
+          property: connectionString
+
+databases:
+  - name: wannav-db
+    databaseName: wannav_system_manager
+    user: wannav_user
