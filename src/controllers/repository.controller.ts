@@ -5,7 +5,7 @@ import githubService from '../services/github.service';
 export const getRepositories = async (req: Request, res: Response) => {
   try {
     const result = await query(
-      'SELECT * FROM repositories ORDER BY is_visible DESC, updated_at DESC'
+      'SELECT * FROM repositories ORDER BY is_visible DESC, COALESCE(github_updated_at, updated_at) DESC'
     );
     res.render('repositories/index', { repositories: result.rows });
   } catch (error) {
@@ -20,8 +20,8 @@ export const syncRepositories = async (req: Request, res: Response) => {
     
     for (const repo of repos) {
       await query(
-        `INSERT INTO repositories (github_id, name, full_name, description, url, homepage, language, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
+        `INSERT INTO repositories (github_id, name, full_name, description, url, homepage, language, github_updated_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
          ON CONFLICT (github_id) 
          DO UPDATE SET 
            name = EXCLUDED.name,
@@ -29,6 +29,7 @@ export const syncRepositories = async (req: Request, res: Response) => {
            url = EXCLUDED.url,
            homepage = EXCLUDED.homepage,
            language = EXCLUDED.language,
+           github_updated_at = EXCLUDED.github_updated_at,
            updated_at = CURRENT_TIMESTAMP`,
         [
           repo.id,
@@ -38,6 +39,7 @@ export const syncRepositories = async (req: Request, res: Response) => {
           repo.html_url,
           repo.homepage,
           repo.language,
+          repo.updated_at,
         ]
       );
     }

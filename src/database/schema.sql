@@ -9,9 +9,13 @@ CREATE TABLE IF NOT EXISTS repositories (
     homepage VARCHAR(500),
     language VARCHAR(100),
     is_visible BOOLEAN DEFAULT true,
+    github_updated_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- github_updated_atカラムを既存テーブルに追加（マイグレーション用）
+ALTER TABLE repositories ADD COLUMN IF NOT EXISTS github_updated_at TIMESTAMP;
 
 -- 更新履歴テーブル
 CREATE TABLE IF NOT EXISTS change_logs (
