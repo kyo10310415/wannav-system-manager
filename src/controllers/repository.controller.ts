@@ -5,7 +5,7 @@ import githubService from '../services/github.service';
 export const getRepositories = async (req: Request, res: Response) => {
   try {
     const result = await query(
-      'SELECT * FROM repositories ORDER BY updated_at DESC'
+      'SELECT * FROM repositories ORDER BY is_visible DESC, updated_at DESC'
     );
     res.render('repositories/index', { repositories: result.rows });
   } catch (error) {
