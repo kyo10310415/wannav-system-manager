@@ -3,9 +3,13 @@ import dotenv from 'dotenv';
 import path from 'path';
 import session from 'express-session';
 import bodyParser from 'body-parser';
+import pool from './database/db';
 
 // Load environment variables
 dotenv.config();
+
+// PostgreSQL session store
+const pgSession = require('connect-pg-simple')(session);
 
 // Import routes
 import repositoryRoutes from './routes/repository.routes';
@@ -25,9 +29,14 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Session middleware
+// Session middleware with PostgreSQL store
 app.use(
   session({
+    store: new pgSession({
+      pool: pool,
+      tableName: 'session',
+      createTableIfMissing: true,
+    }),
     secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
