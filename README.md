@@ -112,7 +112,7 @@ wannav-system-manager/
 | `NODE_ENV` | `production` |
 | `GITHUB_TOKEN` | あなたのGitHub Personal Access Token |
 | `GITHUB_USERNAME` | `kyo10310415` |
-| `SESSION_SECRET` | ランダムな文字列（自動生成可） |
+| `SYSTEM_MANAGER_ADMIN_USERNAME/PASSWORD` | 管理者Basic認証（下記設定参照） |
 | `DATABASE_URL` | データベース作成時に生成された接続文字列 |
 
 #### D. データベース接続
@@ -254,7 +254,7 @@ wannav-system-manager/
 ## 🔐 セキュリティ
 
 - GitHub Personal Access Tokenは環境変数で管理
-- セッションシークレットは本番環境で必ず変更すること
+- 管理者認証とWebhook署名の秘密値は環境変数で管理すること
 - PostgreSQL接続はSSL推奨
 
 ## 📝 ライセンス
@@ -274,3 +274,24 @@ WannaV
 - [ ] レポート・グラフ表示機能
 - [ ] コスト予測機能
 - [ ] メール通知機能
+
+## 管理画面・APIの認証（SEC-030）
+
+配備前にRender Environmentへ以下を保存してください。秘密値はソース・チャット・ログへ貼らないでください。
+
+| 設定 | 内容 |
+|---|---|
+| SYSTEM_MANAGER_ADMIN_USERNAME | 管理者用ユーザー名（コロン不可） |
+| SYSTEM_MANAGER_ADMIN_PASSWORD | このサービス専用のランダム英数字64文字推奨（最低32文字） |
+| SYSTEM_MANAGER_PUBLIC_ORIGIN | 本番HTTPS origin（例 https://wannav-system-manager.onrender.com ） |
+| GITHUB_WEBHOOK_SECRET | webhook使用時のみ、ランダム32文字以上。GitHub側のWebhook Secretと一致させる |
+
+全画面・静的ファイル・repository/task/cost/changelog APIを管理者Basic認証で保護します。管理者認証の設定が不足すると503、未認証は401です。すべてのPOST/PUT/DELETE等はOriginが本サービスと一致する場合だけ許可します。通常の同一画面フォームやAJAXはそのまま使用できます。外部スクリプトから呼ぶ場合も管理者認証と正しいOriginが必要です。
+
+`GET /health`だけは監視用に認証なしで状態のみ返します。Renderのヘルスチェックをこのパスへ設定してください。
+
+`POST /changelogs/webhook`はブラウザ認証ではなく、GitHubの`X-Hub-Signature-256`（raw bodyのHMAC-SHA256）を検証します。GITHUB_WEBHOOK_SECRET未設定は503、不正署名は401でデータ更新しません。GitHub側にも同じSecretを設定してから使ってください。従来の未署名Webhookは拒否されます。配備直後の実Webhook送信は業務データを書き込むため、別途確認してください。再送イベントの重複防止は今回の対象外です。
+
+従来のexpress-sessionはログインや業務処理で参照されていなかったため、未使用のセッション発行と自動sessionテーブル作成を停止しました。SESSION_SECRETは本変更後不要です。既存のDBテーブルやRenderの保存済み変数を削除する必要はありません。
+
+検証: `npm test`（ローカルHTTPサーバーとfixtureルーターで匿名閲覧・変更拒否、管理者の読取り/同一Origin変更、CSRF拒否、署名Webhookを検証）、`npx tsc --noEmit`。DB・GitHub・本番環境への接続や業務操作は行いません。
